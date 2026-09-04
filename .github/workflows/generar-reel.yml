@@ -1,0 +1,60 @@
+name: Generar Reel EJE SUR
+
+on:
+  workflow_dispatch:
+    inputs:
+      categoria:
+        description: 'Categoría'
+        required: true
+      subtag:
+        description: 'Subtag'
+        required: true
+      titular:
+        description: 'Titular completo'
+        required: true
+      bajada:
+        description: 'Bajada/resumen'
+        required: true
+      busqueda_foto:
+        description: 'Búsqueda de foto en inglés'
+        required: true
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Clonar repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+
+      - name: Instalar FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependencias
+        run: pip install pillow requests
+
+      - name: Generar el Reel
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          CATEGORIA: ${{ github.event.inputs.categoria }}
+          SUBTAG: ${{ github.event.inputs.subtag }}
+          TITULAR: ${{ github.event.inputs.titular }}
+          BAJADA: ${{ github.event.inputs.bajada }}
+          BUSQUEDA_FOTO: ${{ github.event.inputs.busqueda_foto }}
+        run: python generate_reel.py
+
+      - name: Commitear el resultado al repo
+        run: |
+          git config --global user.name "eje-sur-bot"
+          git config --global user.email "bot@ejesur.com"
+          git add output/reel.mp4
+          git commit -m "Nuevo Reel generado automáticamente" || echo "Sin cambios"
+          git push
